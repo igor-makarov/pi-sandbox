@@ -155,6 +155,7 @@ export default function (pi: ExtensionAPI) {
     // Filesystem restrictions
     if (config.filesystem) {
       lines.push("## Filesystem Restrictions");
+      lines.push("- **Read access:** Allowed everywhere by default, except explicitly denied paths below.");
       if (config.filesystem.denyRead?.length) {
         lines.push(`- **Denied read paths:** ${config.filesystem.denyRead.join(", ")}`);
       }
@@ -182,7 +183,9 @@ export default function (pi: ExtensionAPI) {
     // Unsandboxed commands
     if (config.unsandboxedCommands?.length) {
       lines.push("## Unsandboxed Commands");
-      lines.push(`The following commands are pre-allowed auto-bypass sandbox restrictions (exact/prefix match only): ${config.unsandboxedCommands.join(", ")}`);
+      lines.push(
+        `The following commands are pre-allowed auto-bypass sandbox restrictions (exact/prefix match only): ${config.unsandboxedCommands.join(", ")}`,
+      );
       lines.push("");
       for (const example of config.unsandboxedCommands) {
         const isPrefix = example.endsWith(" *");
