@@ -41,6 +41,7 @@
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
+import { ApprovalQueue } from "./ApprovalQueue";
 import { createSandboxCommand } from "./commands/sandbox";
 import { DEFAULT_CONFIG, loadConfig } from "./config";
 import type { SandboxState } from "./data/SandboxState";
@@ -62,6 +63,7 @@ export default function (pi: ExtensionAPI) {
   const state: SandboxState = {
     enabled: false,
     config: DEFAULT_CONFIG,
+    approvalQueue: new ApprovalQueue(),
   };
 
   // Register tools

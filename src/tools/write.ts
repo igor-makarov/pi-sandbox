@@ -47,7 +47,14 @@ export function createSandboxedWriteTool(cwd: string, state: SandboxState): Tool
         throw new Error("Cannot run unsandboxed write: no UI available for approval");
       }
 
-      const approved = await ctx.ui.confirm("Unsandboxed Write", `Allow writing without sandbox?\n\n${params.path}`);
+      const approved = await state.approvalQueue.requestApproval(
+        () => ctx.ui.confirm("Unsandboxed Write", `Allow writing without sandbox?\n\n${params.path}`, { signal }),
+        signal,
+      );
+
+      if (signal?.aborted) {
+        throw new Error("aborted");
+      }
 
       if (!approved) {
         throw new Error("User denied permission to write without sandbox");

@@ -48,7 +48,14 @@ export function createSandboxedEditTool(cwd: string, state: SandboxState): ToolD
         throw new Error("Cannot run unsandboxed edit: no UI available for approval");
       }
 
-      const approved = await ctx.ui.confirm("Unsandboxed Edit", `Allow editing without sandbox?\n\n${params.path}`);
+      const approved = await state.approvalQueue.requestApproval(
+        () => ctx.ui.confirm("Unsandboxed Edit", `Allow editing without sandbox?\n\n${params.path}`, { signal }),
+        signal,
+      );
+
+      if (signal?.aborted) {
+        throw new Error("aborted");
+      }
 
       if (!approved) {
         throw new Error("User denied permission to edit without sandbox");
