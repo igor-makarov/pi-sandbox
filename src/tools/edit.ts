@@ -1,13 +1,20 @@
 import { type AgentToolUpdateCallback, type EditToolInput, type ExtensionContext, createEditToolDefinition } from "@mariozechner/pi-coding-agent";
 import { Container, Spacer, Text } from "@mariozechner/pi-tui";
 
-import {
-  type EditDiffError,
-  type EditDiffResult,
-  computeEditsDiff,
-} from "../../node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit-diff.js";
+import type { EditDiffError, EditDiffResult } from "../../node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit-diff.js";
 import type { SandboxState } from "../data/SandboxState";
 import { isReadAllowed, isWriteAllowed } from "../file-ops";
+
+const editDiffModulePath = "../../node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit-diff.js";
+
+async function loadComputeEditsDiff() {
+  const mod = await import(editDiffModulePath);
+  return mod.computeEditsDiff as (
+    path: string,
+    edits: Array<{ oldText: string; newText: string }>,
+    cwd: string,
+  ) => Promise<EditDiffResult | EditDiffError>;
+}
 
 type EditParams = EditToolInput & {
   unsandboxed?: boolean;
@@ -51,6 +58,7 @@ async function dryRunEditPreview(args: EditToolInput, cwd: string, sandboxState:
     return { kind: "skipped" };
   }
 
+  const computeEditsDiff = await loadComputeEditsDiff();
   const preview = await computeEditsDiff(args.path, args.edits, cwd);
   return "error" in preview ? { kind: "error", message: preview.error } : { kind: "ready", result: preview };
 }
