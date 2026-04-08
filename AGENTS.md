@@ -1,3 +1,7 @@
+# Sandbox extension for Pi
+
+This is the sandboxing extension for Pi. 
+
 # Verification
 
 You MUST run verification when you are done
