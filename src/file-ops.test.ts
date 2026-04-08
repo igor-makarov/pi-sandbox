@@ -123,6 +123,7 @@ describe("pathMatchesPattern", () => {
     it("resolves . pattern to cwd", () => {
       expect(pathMatchesPattern("/projects/myapp", ".", cwd)).toBe(true);
       expect(pathMatchesPattern("/projects/myapp/src/index.ts", ".", cwd)).toBe(true);
+      expect(pathMatchesPattern("/projects/myapp/memory/.dreams/run.txt", ".", cwd)).toBe(true);
       expect(pathMatchesPattern("/other/path", ".", cwd)).toBe(false);
     });
 
@@ -222,6 +223,7 @@ describe("isWriteAllowed", () => {
       expect(isWriteAllowed("src/index.ts", cwd, config)).toBe(true);
       expect(isWriteAllowed("./src/index.ts", cwd, config)).toBe(true);
       expect(isWriteAllowed("/projects/myapp/src/index.ts", cwd, config)).toBe(true);
+      expect(isWriteAllowed("/projects/myapp/memory/.dreams/run.txt", cwd, config)).toBe(true);
     });
 
     it("allows paths within /tmp", () => {
