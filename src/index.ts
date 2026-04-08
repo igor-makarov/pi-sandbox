@@ -45,11 +45,16 @@ import { ApprovalQueue } from "./ApprovalQueue";
 import { createSandboxCommand } from "./commands/sandbox";
 import { DEFAULT_CONFIG, loadConfig } from "./config";
 import type { SandboxState } from "./data/SandboxState";
+import { expandHomePath } from "./file-ops";
 import { createSandboxedBashOps } from "./sandbox-ops";
 import { createSandboxedBashTool } from "./tools/bash";
 import { createSandboxedEditTool } from "./tools/edit";
 import { createSandboxedReadTool } from "./tools/read";
 import { createSandboxedWriteTool } from "./tools/write";
+
+function formatPaths(paths: string[]): string {
+  return paths.map(expandHomePath).join(", ");
+}
 
 export default function (pi: ExtensionAPI) {
   pi.registerFlag("no-sandbox", {
@@ -159,13 +164,13 @@ export default function (pi: ExtensionAPI) {
       lines.push("## Filesystem Restrictions");
       lines.push("- **Read access:** Allowed everywhere by default, except explicitly denied paths below.");
       if (config.filesystem.denyRead?.length) {
-        lines.push(`- **Denied read paths:** ${config.filesystem.denyRead.join(", ")}`);
+        lines.push(`- **Denied read paths:** ${formatPaths(config.filesystem.denyRead)}`);
       }
       if (config.filesystem.allowWrite?.length) {
-        lines.push(`- **Allowed write paths:** ${config.filesystem.allowWrite.join(", ")}`);
+        lines.push(`- **Allowed write paths:** ${formatPaths(config.filesystem.allowWrite)}`);
       }
       if (config.filesystem.denyWrite?.length) {
-        lines.push(`- **Denied write paths:** ${config.filesystem.denyWrite.join(", ")}`);
+        lines.push(`- **Denied write paths:** ${formatPaths(config.filesystem.denyWrite)}`);
       }
       lines.push("");
     }

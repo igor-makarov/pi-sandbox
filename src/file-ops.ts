@@ -4,6 +4,18 @@ import picomatch from "picomatch";
 
 import type { SandboxConfig } from "./types";
 
+export function expandHomePath(path: string): string {
+  if (path.startsWith("~/")) {
+    return homedir() + path.slice(1);
+  }
+
+  if (path === "~") {
+    return homedir();
+  }
+
+  return path;
+}
+
 /**
  * Checks if reading from a path is allowed by sandbox config.
  */
@@ -45,11 +57,7 @@ export function isWriteAllowed(path: string, cwd: string, config: SandboxConfig)
 
 export function pathMatchesPattern(path: string, pattern: string, cwd: string): boolean {
   // Expand ~ in pattern
-  if (pattern.startsWith("~/")) {
-    pattern = homedir() + pattern.slice(1);
-  } else if (pattern === "~") {
-    pattern = homedir();
-  }
+  pattern = expandHomePath(pattern);
 
   // Resolve relative patterns (., ./, relative paths) against cwd
   if (pattern === ".") {
@@ -78,11 +86,7 @@ export function pathMatchesPattern(path: string, pattern: string, cwd: string): 
 }
 
 function resolvePath(path: string, cwd: string): string {
-  if (path.startsWith("~/")) {
-    path = homedir() + path.slice(1);
-  } else if (path === "~") {
-    path = homedir();
-  }
+  path = expandHomePath(path);
 
   if (!isAbsolute(path)) {
     path = resolve(cwd, path);

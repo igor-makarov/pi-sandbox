@@ -1,8 +1,27 @@
 import { homedir } from "node:os";
 import { describe, expect, it } from "vitest";
 
-import { isReadAllowed, isWriteAllowed, pathMatchesPattern } from "./file-ops";
+import { expandHomePath, isReadAllowed, isWriteAllowed, pathMatchesPattern } from "./file-ops";
 import type { SandboxConfig } from "./types";
+
+describe("expandHomePath", () => {
+  const home = homedir();
+
+  it("expands ~/<path> to the home directory", () => {
+    expect(expandHomePath("~/.ssh")).toBe(`${home}/.ssh`);
+    expect(expandHomePath("~/Documents/file.txt")).toBe(`${home}/Documents/file.txt`);
+  });
+
+  it("expands standalone ~ to the home directory", () => {
+    expect(expandHomePath("~")).toBe(home);
+  });
+
+  it("leaves non-home-prefixed paths unchanged", () => {
+    expect(expandHomePath("/tmp/file.txt")).toBe("/tmp/file.txt");
+    expect(expandHomePath("src/index.ts")).toBe("src/index.ts");
+    expect(expandHomePath("~other/file.txt")).toBe("~other/file.txt");
+  });
+});
 
 describe("pathMatchesPattern", () => {
   const home = homedir();
