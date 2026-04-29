@@ -69,6 +69,7 @@ export default function (pi: ExtensionAPI) {
     enabled: false,
     config: DEFAULT_CONFIG,
     approvalQueue: new ApprovalQueue(),
+    sessionId: "",
   };
 
   // Register tools
@@ -86,10 +87,11 @@ export default function (pi: ExtensionAPI) {
   // Event handlers
   pi.on("user_bash", () => {
     if (!state.enabled) return;
-    return { operations: createSandboxedBashOps() };
+    return { operations: createSandboxedBashOps(state) };
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    state.sessionId = ctx.sessionManager.getSessionId();
     const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
     if (noSandbox) {

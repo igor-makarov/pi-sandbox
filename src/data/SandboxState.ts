@@ -5,4 +5,5 @@ export interface SandboxState {
   enabled: boolean;
   config: SandboxConfig;
   approvalQueue: ApprovalQueue;
+  sessionId: string;
 }

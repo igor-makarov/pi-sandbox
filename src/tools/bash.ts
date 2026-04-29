@@ -12,7 +12,7 @@ type BashParams = {
 export function createSandboxedBashTool(cwd: string, state: SandboxState): ToolDefinition {
   const unsafeOriginalBash = createBashTool(cwd);
   const sandboxedBash = createBashTool(cwd, {
-    operations: createSandboxedBashOps(),
+    operations: createSandboxedBashOps(state),
   });
   return {
     ...unsafeOriginalBash,

@@ -1,17 +1,31 @@
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { BashOperations } from "@mariozechner/pi-coding-agent";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { parse } from "shell-quote";
 
-export function createSandboxedBashOps(): BashOperations {
+import type { SandboxState } from "./data/SandboxState";
+
+export function createSandboxedBashOps(state: SandboxState): BashOperations {
   return {
     async exec(command, cwd, { onData, signal, timeout }) {
       if (!existsSync(cwd)) {
         throw new Error(`Working directory does not exist: ${cwd}`);
       }
 
-      const wrappedCommand = await SandboxManager.wrapWithSandbox(command);
+      // Write command to a temp script file to avoid shell-quote escaping issues
+      // in SandboxManager.wrapWithSandbox (e.g. '!' gets escaped to '\!')
+      if (!state.sessionId) {
+        throw new Error("sessionId not set — session_start must fire before sandbox exec");
+      }
+      const tmpDir = "/tmp/pi/sandbox-cmds";
+      mkdirSync(tmpDir, { recursive: true });
+      const hash = createHash("sha256").update(command).digest("hex").slice(0, 16);
+      const tmpFile = `${tmpDir}/cmd-${state.sessionId}-${hash}.sh`;
+      writeFileSync(tmpFile, command, { mode: 0o700 });
+
+      const wrappedCommand = await SandboxManager.wrapWithSandbox(tmpFile);
 
       return new Promise((resolve, reject) => {
         const child = spawn("bash", ["-c", wrappedCommand], {
@@ -56,7 +70,16 @@ export function createSandboxedBashOps(): BashOperations {
 
         signal?.addEventListener("abort", onAbort, { once: true });
 
+        const cleanup = () => {
+          try {
+            unlinkSync(tmpFile);
+          } catch {
+            // ignore cleanup errors
+          }
+        };
+
         child.on("close", (code) => {
+          cleanup();
           if (timeoutHandle) clearTimeout(timeoutHandle);
           signal?.removeEventListener("abort", onAbort);
 
