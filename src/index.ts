@@ -164,29 +164,47 @@ export default function (pi: ExtensionAPI) {
     // Filesystem restrictions
     if (config.filesystem) {
       lines.push("## Filesystem Restrictions");
-      lines.push("- **Read access:** Allowed everywhere by default, except explicitly denied paths below.");
-      if (config.filesystem.denyRead?.length) {
-        lines.push(`- **Denied read paths:** ${formatPaths(config.filesystem.denyRead)}`);
-      }
-      if (config.filesystem.allowWrite?.length) {
-        lines.push(`- **Allowed write paths:** ${formatPaths(config.filesystem.allowWrite)}`);
-      }
-      if (config.filesystem.denyWrite?.length) {
-        lines.push(`- **Denied write paths:** ${formatPaths(config.filesystem.denyWrite)}`);
-      }
       lines.push("");
+      lines.push("### Allowed read paths");
+      lines.push("- /");
+      lines.push("");
+
+      if (config.filesystem.denyRead?.length) {
+        lines.push("### Denied read paths");
+        lines.push(...config.filesystem.denyRead.map((path) => `- ${expandHomePath(path)}`));
+        lines.push("");
+      }
+
+      if (config.filesystem.allowWrite?.length) {
+        lines.push("### Allowed write paths");
+        lines.push(...config.filesystem.allowWrite.map((path) => `- ${expandHomePath(path)}`));
+        lines.push("");
+      }
+
+      if (config.filesystem.denyWrite?.length) {
+        lines.push("### Denied write paths");
+        lines.push(...config.filesystem.denyWrite.map((path) => `- ${expandHomePath(path)}`));
+        lines.push("");
+      }
     }
 
     // Network restrictions
     if (config.network) {
       lines.push("## Network Restrictions");
+      lines.push("");
+      lines.push("### Allowed domains");
       if (config.network.allowedDomains?.length) {
-        lines.push(`- **Allowed domains:** ${config.network.allowedDomains.join(", ")}`);
-      }
-      if (config.network.deniedDomains?.length) {
-        lines.push(`- **Denied domains:** ${config.network.deniedDomains.join(", ")}`);
+        lines.push(...config.network.allowedDomains.map((domain) => `- ${domain}`));
+      } else {
+        lines.push("- none");
       }
       lines.push("");
+
+      if (config.network.deniedDomains?.length) {
+        lines.push("### Denied domains");
+        lines.push(...config.network.deniedDomains.map((domain) => `- ${domain}`));
+        lines.push("");
+      }
     }
 
     // Unsandboxed commands
