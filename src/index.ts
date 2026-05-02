@@ -52,8 +52,24 @@ import { createSandboxedEditTool } from "./tools/edit";
 import { createSandboxedReadTool } from "./tools/read";
 import { createSandboxedWriteTool } from "./tools/write";
 
-function formatPaths(paths: string[]): string {
-  return paths.map(expandHomePath).join(", ");
+function formatDisplayPath(path: string, cwd: string): string {
+  const originalPath = path;
+  path = expandHomePath(path);
+
+  if (path === ".") {
+    return `\`${cwd}\``;
+  }
+
+  if (path.startsWith("./")) {
+    return `\`${cwd + path.slice(1)}\``;
+  }
+
+  if (!path.startsWith("/") && path.includes("/")) {
+    return `\`${cwd}/${path}\``;
+  }
+
+  const isBasenameMatch = !originalPath.startsWith("/") && !originalPath.includes("/") && originalPath !== "~";
+  return isBasenameMatch ? `\`${path}\` (basename match)` : `\`${path}\``;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -155,7 +171,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("before_agent_start", async () => {
+  pi.on("before_agent_start", async (_event, ctx) => {
     if (!state.enabled) return;
 
     const { config } = state;
@@ -166,24 +182,24 @@ export default function (pi: ExtensionAPI) {
       lines.push("## Filesystem Restrictions");
       lines.push("");
       lines.push("### Allowed read paths");
-      lines.push("- /");
+      lines.push("- `/` (entire filesystem readable)");
       lines.push("");
 
       if (config.filesystem.denyRead?.length) {
         lines.push("### Denied read paths");
-        lines.push(...config.filesystem.denyRead.map((path) => `- ${expandHomePath(path)}`));
+        lines.push(...config.filesystem.denyRead.map((path) => `- ${formatDisplayPath(path, ctx.cwd)}`));
         lines.push("");
       }
 
       if (config.filesystem.allowWrite?.length) {
         lines.push("### Allowed write paths");
-        lines.push(...config.filesystem.allowWrite.map((path) => `- ${expandHomePath(path)}`));
+        lines.push(...config.filesystem.allowWrite.map((path) => `- ${formatDisplayPath(path, ctx.cwd)}`));
         lines.push("");
       }
 
       if (config.filesystem.denyWrite?.length) {
         lines.push("### Denied write paths");
-        lines.push(...config.filesystem.denyWrite.map((path) => `- ${expandHomePath(path)}`));
+        lines.push(...config.filesystem.denyWrite.map((path) => `- ${formatDisplayPath(path, ctx.cwd)}`));
         lines.push("");
       }
     }
