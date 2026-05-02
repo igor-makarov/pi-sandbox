@@ -6,7 +6,7 @@ import { createSandboxedBashOps, isUnsandboxedCommand } from "../sandbox-ops";
 type BashParams = {
   command: string;
   timeout?: number;
-  unsandboxed?: boolean;
+  bypassSandbox?: boolean;
 };
 
 export function createSandboxedBashTool(cwd: string, state: SandboxState): ToolDefinition {
@@ -16,12 +16,12 @@ export function createSandboxedBashTool(cwd: string, state: SandboxState): ToolD
   });
   return {
     ...unsafeOriginalBash,
-    description: `${unsafeOriginalBash.description} Runs the command in an OS sandbox by default. Escalate using unsandboxed: true if needed.`,
+    description: `${unsafeOriginalBash.description} Runs the command in an OS sandbox by default. Set bypassSandbox: true if needed.`,
     parameters: {
       ...unsafeOriginalBash.parameters,
       properties: {
         ...unsafeOriginalBash.parameters.properties,
-        unsandboxed: { type: "boolean" as const, description: "Show UI to user to bypass sandbox restrictions" },
+        bypassSandbox: { type: "boolean" as const, description: "Request approval to run outside the sandbox. Shows a dialog to the user." },
       },
     },
     async execute(
@@ -40,7 +40,7 @@ export function createSandboxedBashTool(cwd: string, state: SandboxState): ToolD
       }
 
       // Default: execute in sandbox
-      if (!params.unsandboxed) {
+      if (!params.bypassSandbox) {
         return sandboxedBash.execute(id, params, signal, onUpdate);
       }
 

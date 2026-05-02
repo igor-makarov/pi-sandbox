@@ -6,7 +6,7 @@ import { isWriteAllowed } from "../file-ops";
 type WriteParams = {
   path: string;
   content: string;
-  unsandboxed?: boolean;
+  bypassSandbox?: boolean;
 };
 
 export function createSandboxedWriteTool(cwd: string, state: SandboxState): ToolDefinition {
@@ -14,12 +14,12 @@ export function createSandboxedWriteTool(cwd: string, state: SandboxState): Tool
 
   return {
     ...unsafeOriginalWrite,
-    description: `${unsafeOriginalWrite.description} Writes in sandbox by default. Escalate using unsandboxed: true if needed.`,
+    description: `${unsafeOriginalWrite.description} Writes in sandbox by default. Set bypassSandbox: true if needed.`,
     parameters: {
       ...unsafeOriginalWrite.parameters,
       properties: {
         ...unsafeOriginalWrite.parameters.properties,
-        unsandboxed: { type: "boolean" as const, description: "Show UI to user to bypass sandbox restrictions" },
+        bypassSandbox: { type: "boolean" as const, description: "Request approval to run outside the sandbox. Shows a dialog to the user." },
       },
     },
     async execute(
@@ -35,7 +35,7 @@ export function createSandboxedWriteTool(cwd: string, state: SandboxState): Tool
       }
 
       // If we reached here, the path is NOT allowed in the sandbox.
-      if (!params.unsandboxed) {
+      if (!params.bypassSandbox) {
         throw new Error(`Sandbox: write denied for "${params.path}"`);
       }
 

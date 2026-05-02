@@ -17,7 +17,7 @@ async function loadComputeEditsDiff() {
 }
 
 type EditParams = EditToolInput & {
-  unsandboxed?: boolean;
+  bypassSandbox?: boolean;
 };
 
 type EditPreviewState =
@@ -122,12 +122,12 @@ export function createSandboxedEditTool(cwd: string, state: SandboxState) {
 
   return {
     ...unsafeOriginalEdit,
-    description: `${unsafeOriginalEdit.description} Edits in sandbox by default. Escalate using unsandboxed: true if needed.`,
+    description: `${unsafeOriginalEdit.description} Edits in sandbox by default. Set bypassSandbox: true if needed.`,
     parameters: {
       ...unsafeOriginalEdit.parameters,
       properties: {
         ...unsafeOriginalEdit.parameters.properties,
-        unsandboxed: { type: "boolean" as const, description: "Show UI to user to bypass sandbox restrictions" },
+        bypassSandbox: { type: "boolean" as const, description: "Request approval to run outside the sandbox. Shows a dialog to the user." },
       },
     },
     renderCall(args: RenderCallArgs, theme: RenderCallTheme, context: RenderCallContext) {
@@ -228,7 +228,7 @@ export function createSandboxedEditTool(cwd: string, state: SandboxState) {
       }
 
       // If we reached here, the path is NOT allowed in the sandbox.
-      if (!params.unsandboxed) {
+      if (!params.bypassSandbox) {
         throw new Error(`Sandbox: edit denied for "${params.path}"`);
       }
 

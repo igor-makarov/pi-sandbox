@@ -7,7 +7,7 @@ type ReadParams = {
   path: string;
   offset?: number;
   limit?: number;
-  unsandboxed?: boolean;
+  bypassSandbox?: boolean;
 };
 
 export function createSandboxedReadTool(cwd: string, state: SandboxState): ToolDefinition {
@@ -15,12 +15,12 @@ export function createSandboxedReadTool(cwd: string, state: SandboxState): ToolD
 
   return {
     ...unsafeOriginalRead,
-    description: `${unsafeOriginalRead.description} Reads in sandbox by default. Escalate using unsandboxed: true if needed.`,
+    description: `${unsafeOriginalRead.description} Reads in sandbox by default. Set bypassSandbox: true if needed.`,
     parameters: {
       ...unsafeOriginalRead.parameters,
       properties: {
         ...unsafeOriginalRead.parameters.properties,
-        unsandboxed: { type: "boolean" as const, description: "Show UI to user to bypass sandbox restrictions" },
+        bypassSandbox: { type: "boolean" as const, description: "Request approval to run outside the sandbox. Shows a dialog to the user." },
       },
     },
     async execute(
@@ -36,7 +36,7 @@ export function createSandboxedReadTool(cwd: string, state: SandboxState): ToolD
       }
 
       // If we reached here, the path is NOT allowed in the sandbox.
-      if (!params.unsandboxed) {
+      if (!params.bypassSandbox) {
         throw new Error(`Sandbox: read denied for "${params.path}"`);
       }
 
