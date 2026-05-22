@@ -32,6 +32,10 @@ type DryRunOutcome = { kind: "skipped" } | { kind: "ready"; result: EditDiffResu
 
 type EditToolRenderState = {
   previewState?: EditPreviewState;
+  container?: Container;
+  lastArgsKey?: string;
+  lastExpanded?: boolean;
+  lastPreviewKind?: string;
 };
 
 function createIdlePreviewState(argsKey: string): EditPreviewState {
@@ -142,55 +146,74 @@ export function createSandboxedEditTool(cwd: string, state: SandboxState) {
       }
 
       const currentPreviewState = renderState.previewState ?? previewState;
-      const container = new Container();
-      const callComponent = unsafeOriginalEdit.renderCall
-        ? unsafeOriginalEdit.renderCall(previewArgs, theme, { ...context, state: {}, lastComponent: undefined })
-        : new Text(theme.fg("toolTitle", theme.bold("edit")), 0, 0);
-      container.addChild(callComponent);
 
-      switch (currentPreviewState.kind) {
-        case "done":
-        case "skipped":
-        case "idle":
-        case "loading":
-          return container;
-        case "ready": {
-          if (!unsafeOriginalEdit.renderResult) {
-            return container;
+      // Persistent container — reused across frames (same pattern as original edit tool's Box reuse).
+      // This avoids creating new component trees every frame, which would force the TUI to
+      // diff and re-render even when nothing changed.
+      let container: Container;
+      if (context.lastComponent instanceof Container) {
+        container = context.lastComponent;
+      } else if (renderState.container) {
+        container = renderState.container;
+      } else {
+        container = new Container();
+      }
+      renderState.container = container;
+
+      // Only rebuild the container content when args, expanded state, or preview kind changes
+      const previewKind = currentPreviewState.kind;
+      const needsRebuild =
+        renderState.lastArgsKey !== argsKey || renderState.lastExpanded !== context.expanded || renderState.lastPreviewKind !== previewKind;
+
+      if (needsRebuild) {
+        renderState.lastArgsKey = argsKey;
+        renderState.lastExpanded = context.expanded;
+        renderState.lastPreviewKind = previewKind;
+
+        container.clear();
+
+        const callComponent = unsafeOriginalEdit.renderCall
+          ? unsafeOriginalEdit.renderCall(previewArgs, theme, { ...context, state: {}, lastComponent: undefined })
+          : new Text(theme.fg("toolTitle", theme.bold("edit")), 0, 0);
+        container.addChild(callComponent);
+
+        switch (previewKind) {
+          case "done":
+          case "skipped":
+          case "idle":
+          case "loading":
+            break;
+          case "ready": {
+            if (!unsafeOriginalEdit.renderResult) break;
+            const renderResultFn = unsafeOriginalEdit.renderResult;
+            const diffResult = currentPreviewState.result;
+            const resultComponent = renderResultFn(
+              { content: [] as Array<{ type: "text"; text: string }>, details: diffResult },
+              { expanded: context.expanded, isPartial: false },
+              theme,
+              { ...context, state: {}, lastComponent: undefined, isError: false },
+            );
+            container.addChild(resultComponent);
+            break;
           }
-
-          const previewResult = {
-            content: [] as Array<{ type: "text"; text: string }>,
-            details: currentPreviewState.result,
-          };
-          const resultComponent = unsafeOriginalEdit.renderResult(previewResult, { expanded: context.expanded, isPartial: false }, theme, {
-            ...context,
-            state: {},
-            lastComponent: undefined,
-            isError: false,
-          });
-          container.addChild(resultComponent);
-          return container;
-        }
-        case "error": {
-          if (!unsafeOriginalEdit.renderResult) {
-            return container;
+          case "error": {
+            if (!unsafeOriginalEdit.renderResult) break;
+            const renderResultFn = unsafeOriginalEdit.renderResult;
+            const errorMessage = currentPreviewState.message;
+            const previewError: EditDiffError = { error: errorMessage };
+            const resultComponent = renderResultFn(
+              { content: [{ type: "text", text: previewError.error }], details: undefined },
+              { expanded: context.expanded, isPartial: false },
+              theme,
+              { ...context, state: {}, lastComponent: undefined, isError: true },
+            );
+            container.addChild(resultComponent);
+            break;
           }
-
-          const previewError: EditDiffError = { error: currentPreviewState.message };
-          const resultComponent = unsafeOriginalEdit.renderResult(
-            {
-              content: [{ type: "text", text: previewError.error }],
-              details: undefined,
-            },
-            { expanded: context.expanded, isPartial: false },
-            theme,
-            { ...context, state: {}, lastComponent: undefined, isError: true },
-          );
-          container.addChild(resultComponent);
-          return container;
         }
       }
+
+      return container;
     },
     renderResult(result: RenderResultValue, options: RenderResultOptions, theme: RenderResultTheme, context: RenderResultContext) {
       const renderState = getRenderState(context);
