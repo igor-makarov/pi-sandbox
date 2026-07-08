@@ -58,6 +58,10 @@ function getPreviewState(renderState: EditToolRenderState, argsKey: string): Edi
 }
 
 async function dryRunEditPreview(args: EditToolInput, cwd: string, sandboxState: SandboxState): Promise<DryRunOutcome> {
+  if (args.path == null) {
+    return { kind: "skipped" };
+  }
+
   if (sandboxState.enabled && !isReadAllowed(args.path, cwd, sandboxState.config)) {
     return { kind: "skipped" };
   }

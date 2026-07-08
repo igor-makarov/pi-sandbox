@@ -4,7 +4,18 @@ import picomatch from "picomatch";
 
 import type { SandboxConfig } from "./types";
 
+export class SandboxError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SandboxError";
+  }
+}
+
 export function expandHomePath(path: string): string {
+  if (path == null) {
+    throw new SandboxError("path must be a non-null string");
+  }
+
   if (path.startsWith("~/")) {
     return homedir() + path.slice(1);
   }
@@ -20,6 +31,10 @@ export function expandHomePath(path: string): string {
  * Checks if reading from a path is allowed by sandbox config.
  */
 export function isReadAllowed(path: string, cwd: string, config: SandboxConfig): boolean {
+  if (path == null) {
+    throw new SandboxError("path must be a non-null string");
+  }
+
   const absolutePath = resolvePath(path, cwd);
   const denyRead = config.filesystem?.denyRead;
 
@@ -35,6 +50,10 @@ export function isReadAllowed(path: string, cwd: string, config: SandboxConfig):
  * Path must match at least one allowWrite pattern (if defined) and must not match any denyWrite pattern.
  */
 export function isWriteAllowed(path: string, cwd: string, config: SandboxConfig): boolean {
+  if (path == null) {
+    throw new SandboxError("path must be a non-null string");
+  }
+
   const absolutePath = resolvePath(path, cwd);
   const allowWrite = config.filesystem?.allowWrite;
   const denyWrite = config.filesystem?.denyWrite;
@@ -56,6 +75,14 @@ export function isWriteAllowed(path: string, cwd: string, config: SandboxConfig)
 }
 
 export function pathMatchesPattern(path: string, pattern: string, cwd: string): boolean {
+  if (path == null) {
+    throw new SandboxError("path must be a non-null string");
+  }
+
+  if (pattern == null) {
+    throw new SandboxError("pattern must be a non-null string");
+  }
+
   // Expand ~ in pattern
   pattern = expandHomePath(pattern);
 
@@ -82,6 +109,10 @@ export function pathMatchesPattern(path: string, pattern: string, cwd: string): 
 }
 
 function resolvePath(path: string, cwd: string): string {
+  if (path == null) {
+    throw new SandboxError("path must be a non-null string");
+  }
+
   path = expandHomePath(path);
 
   if (!isAbsolute(path)) {
