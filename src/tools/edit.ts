@@ -62,10 +62,6 @@ async function dryRunEditPreview(args: EditToolInput, cwd: string, sandboxState:
     return { kind: "skipped" };
   }
 
-  if (sandboxState.enabled && !isReadAllowed(args.path, cwd, sandboxState.config)) {
-    return { kind: "skipped" };
-  }
-
   const computeEditsDiff = await loadComputeEditsDiff();
   const preview = await computeEditsDiff(args.path, args.edits, cwd);
   return "error" in preview ? { kind: "error", message: preview.error } : { kind: "ready", result: preview };
@@ -261,7 +257,8 @@ export function createSandboxedEditTool(cwd: string, state: SandboxState) {
 
       const dryRun = await dryRunEditPreview(params, cwd, state);
       if (dryRun.kind === "error") {
-        throw new Error(dryRun.message);
+        const readDenied = state.enabled && !isReadAllowed(params.path, cwd, state.config);
+        throw new Error(readDenied ? `Could not apply edit to "${params.path}": edit parameters do not match file content` : dryRun.message);
       }
 
       // Unsandboxed run
